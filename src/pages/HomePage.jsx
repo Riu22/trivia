@@ -73,7 +73,7 @@ export default function HomePage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
-      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232,255,71,0.06) 0%, transparent 70%)',
+      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(71,179,255,0.06) 0%, transparent 70%)',
     }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Logo */}
@@ -95,6 +95,20 @@ export default function HomePage() {
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>Trivia</h1>
           <p style={{ color: 'var(--text-2)', fontSize: '14px', marginTop: '6px' }}>Play with friends, anywhere</p>
+          <button
+            onClick={() => navigate('/history')}
+            style={{
+              marginTop: '12px',
+              fontSize: '12px',
+              color: 'var(--text-3)',
+              fontFamily: 'var(--font-mono)',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+            }}
+          >
+            📋 Match history
+          </button>
         </div>
 
         {/* Tabs */}

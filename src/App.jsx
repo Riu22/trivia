@@ -5,6 +5,7 @@ import HomePage from './pages/HomePage'
 import RoomPage from './pages/RoomPage'
 import GamePage from './pages/GamePage'
 import NotFoundPage from './pages/NotFoundPage'
+import HistoryPage from './pages/HistoryPage'
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
           <Route path="/room/:roomId" element={<RoomPage />} />
           <Route path="/game/:gameId" element={<GamePage />} />
           <Route path="*" element={<NotFoundPage />} />
+          <Route path="/history" element={<HistoryPage />} />
         </Routes>
         <ToastContainer />
       </AuthProvider>

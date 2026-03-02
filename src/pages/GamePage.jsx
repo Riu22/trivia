@@ -8,6 +8,7 @@ import QuestionCard from '../components/QuestionCard'
 import CountdownTimer from '../components/CountdownTimer'
 import Scoreboard from '../components/Scoreboard'
 import { Badge, Spinner, Button, Card, toast } from '../components/Ui'
+import { saveGame } from '../utils/history'
 
 function RoundTab({ round, index, active, onClick }) {
   const now = new Date()
@@ -61,12 +62,17 @@ export default function GamePage() {
   const [showScore, setShowScore] = useState(false)
   const [questionsLoading, setQuestionsLoading] = useState(false)
   const activeRoundRef = useRef(null)
+  const savedRef = useRef(false)
 
   const roundEnded = activeRound && new Date(activeRound.endedAt) <= new Date()
   const roundStarted = activeRound && new Date(activeRound.createdAt) <= new Date()
 
   useEffect(() => {
     if (game?.endedAt && new Date(game.endedAt) <= new Date()) {
+      if (!savedRef.current) {
+        savedRef.current = true
+        saveGame(game, rounds, players, me?.id)
+      }
       toast('Partida finalizada', 'info')
       const timer = setTimeout(() => {
         const p = JSON.parse(localStorage.getItem('player') || '{}')
@@ -75,7 +81,7 @@ export default function GamePage() {
       }, 3000)
       return () => clearTimeout(timer)
     }
-  }, [game?.endedAt, navigate])
+  }, [game?.endedAt, navigate, rounds, players, me?.id])
 
   const loadRound = useCallback(async (round) => {
     if (!round) return
@@ -147,7 +153,7 @@ export default function GamePage() {
       try {
         const updatedGame = await getGame(gameId)
         setGame(updatedGame)
-        
+
         const rs = await getRounds(gameId)
         setRounds(rs)
 
@@ -215,18 +221,34 @@ export default function GamePage() {
                 <h2 style={{ fontSize: '16px', fontWeight: 700 }}>Round {rounds.findIndex(r => r.id === activeRound.id) + 1}</h2>
                 {roundEnded ? <Badge color="green">Ended</Badge> : roundStarted ? <Badge color="accent">Active</Badge> : <Badge color="default">Upcoming</Badge>}
               </div>
-              {roundStarted && !roundEnded && <CountdownTimer endsAt={activeRound.endedAt} totalSeconds={Math.round((new Date(activeRound.endedAt) - new Date(activeRound.createdAt)) / 1000)} />}
+              {roundStarted && !roundEnded && (
+                <CountdownTimer
+                  endsAt={activeRound.endedAt}
+                  totalSeconds={Math.round((new Date(activeRound.endedAt) - new Date(activeRound.createdAt)) / 1000)}
+                />
+              )}
             </div>
           )}
 
           {questionsLoading ? (
-            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}><Spinner size={24} color="var(--accent)" /></div>
+            <div style={{ display: 'flex', justifyContent: 'center', padding: '48px' }}>
+              <Spinner size={24} color="var(--accent)" />
+            </div>
           ) : !roundStarted ? (
-            <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-3)' }}><p>Waiting for round…</p></div>
+            <div style={{ textAlign: 'center', padding: '64px 24px', color: 'var(--text-3)' }}>
+              <p>Waiting for round…</p>
+            </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {questions.map(q => (
-                <QuestionCard key={q.id} question={q} gameId={gameId} roundId={activeRound.id} roundEnded={roundEnded} myAnswer={myAnswerForQuestion(q.id)} />
+                <QuestionCard
+                  key={q.id}
+                  question={q}
+                  gameId={gameId}
+                  roundId={activeRound.id}
+                  roundEnded={roundEnded}
+                  myAnswer={myAnswerForQuestion(q.id)}
+                />
               ))}
             </div>
           )}
