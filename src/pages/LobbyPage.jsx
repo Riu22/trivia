@@ -57,7 +57,7 @@ function PlayerTag({ player, isHost, isMe, teams, canKick, onKick }) {
       <span style={{ flex: 1, fontSize: '14px', fontWeight: 500 }}>{player.username}</span>
       {isMe && <Badge color="accent">You</Badge>}
       {isHost && <Badge color="default">Host</Badge>}
-      {team && <Badge color="blue">T{team.id}</Badge>}
+      {team && <Badge color="blue">Team {team.id}</Badge>}
       {canKick && (
         <button
           onClick={onKick}
@@ -88,6 +88,7 @@ export default function LobbyPage() {
 
   const isHost = room && me && room.hostId === me.id
   const hasGame = !!room?.gameId
+  const myTeamId = players.find(p => p.id === me?.id)?.teamId
 
   async function handleCreateTeam() {
     if (hasGame) { toast('Cannot create teams during an active game', 'error'); return }
@@ -106,6 +107,26 @@ export default function LobbyPage() {
       refresh()
     } catch (e) {
       toast(e.status === 409 ? 'Cannot delete teams during an active game' : 'Failed to delete team', 'error')
+    }
+  }
+
+  async function handleJoinTeam(teamId) {
+    if (hasGame) { toast('Cannot change teams during an active game', 'error'); return }
+    try {
+      await assignPlayerToTeam(room.id, teamId, me.id)
+      refresh()
+    } catch (e) {
+      toast('Failed to join team', 'error')
+    }
+  }
+
+  async function handleLeaveTeam(teamId) {
+    if (hasGame) { toast('Cannot change teams during an active game', 'error'); return }
+    try {
+      await removePlayerFromTeam(room.id, teamId, me.id)
+      refresh()
+    } catch (e) {
+      toast('Failed to leave team', 'error')
     }
   }
 
@@ -132,18 +153,12 @@ export default function LobbyPage() {
   async function handleLeave() {
     const amHost = room?.hostId === me?.id
     const otherPlayers = players.filter(p => p.id !== me?.id)
-
     if (amHost && otherPlayers.length > 0) {
-      toast('You are the host. Kick all other players before leaving, or wait until they leave.', 'error')
+      toast('You are the host. Kick all other players before leaving.', 'error')
       return
     }
-
     if (!window.confirm('Are you sure you want to leave the room?')) return
-    try {
-      await deletePlayer(room.id, me.id)
-    } catch (e) {
-      console.warn('deletePlayer failed:', e)
-    }
+    try { await deletePlayer(room.id, me.id) } catch (e) { console.warn('deletePlayer failed:', e) }
     navigate('/')
   }
 
@@ -192,6 +207,7 @@ export default function LobbyPage() {
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
+      {/* Header */}
       <div className="lobby-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -232,13 +248,17 @@ export default function LobbyPage() {
             </Button>
           ) : (
             <div style={{ fontSize: '13px', color: 'var(--text-3)' }}>
-              Waiting for host to start…
+              {!myTeamId && teams.length > 0
+                ? <span style={{ color: 'var(--red)', fontWeight: 600 }}>⚠ Join a team to play</span>
+                : 'Waiting for host to start…'
+              }
             </div>
           )}
         </div>
       </div>
 
       <div className="grid-2">
+        {/* Players */}
         <div>
           <div style={{ marginBottom: '12px' }}>
             <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -263,6 +283,7 @@ export default function LobbyPage() {
           </div>
         </div>
 
+        {/* Teams */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -285,23 +306,59 @@ export default function LobbyPage() {
             {teams.map(team => {
               const teamPlayers = players.filter(p => String(p.teamId) === String(team.id))
               const unassigned = players.filter(p => !p.teamId)
+              const isMyTeam = String(myTeamId) === String(team.id)
+
               return (
                 <div key={team.id} style={{
-                  background: 'var(--bg-2)',
-                  border: '1px solid var(--border)',
+                  background: isMyTeam ? 'var(--blue-dim)' : 'var(--bg-2)',
+                  border: `1px solid ${isMyTeam ? 'rgba(71,179,255,0.3)' : 'var(--border)'}`,
                   borderRadius: 'var(--radius)',
                   padding: '14px',
+                  transition: 'all var(--transition)',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
-                    <span style={{ fontWeight: 600, fontSize: '14px' }}>Team {team.id}</span>
-                    {isHost && !hasGame && (
-                      <button
-                        onClick={() => handleDeleteTeam(team.id)}
-                        style={{ color: 'var(--text-3)', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
-                      >
-                        ×
-                      </button>
-                    )}
+                    <span style={{ fontWeight: 600, fontSize: '14px' }}>
+                      Team {team.id}
+                      {isMyTeam && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--blue)' }}>← you</span>}
+                    </span>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      {/* Any player can join/leave a team */}
+                      {!hasGame && (
+                        isMyTeam ? (
+                          <button
+                            onClick={() => handleLeaveTeam(team.id)}
+                            style={{
+                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
+                              background: 'var(--red-dim)', border: '1px solid rgba(255,71,71,0.3)',
+                              color: 'var(--red)', cursor: 'pointer', fontFamily: 'var(--font-display)',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Leave
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleJoinTeam(team.id)}
+                            style={{
+                              fontSize: '11px', padding: '3px 8px', borderRadius: '4px',
+                              background: 'var(--accent-dim)', border: '1px solid rgba(232,255,71,0.3)',
+                              color: 'var(--accent)', cursor: 'pointer', fontFamily: 'var(--font-display)',
+                              fontWeight: 600,
+                            }}
+                          >
+                            Join
+                          </button>
+                        )
+                      )}
+                      {isHost && !hasGame && (
+                        <button
+                          onClick={() => handleDeleteTeam(team.id)}
+                          style={{ color: 'var(--text-3)', fontSize: '18px', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+                        >
+                          ×
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginBottom: teamPlayers.length ? '8px' : 0 }}>
@@ -312,7 +369,7 @@ export default function LobbyPage() {
                         background: 'var(--bg-3)',
                       }}>
                         <span style={{ fontSize: '13px', flex: 1 }}>{p.username}</span>
-                        {isHost && !hasGame && (
+                        {isHost && !hasGame && p.id !== me?.id && (
                           <button
                             onClick={() => handleRemoveFromTeam(team.id, p.id)}
                             style={{ color: 'var(--text-3)', fontSize: '14px', background: 'none', border: 'none', cursor: 'pointer' }}
@@ -327,7 +384,8 @@ export default function LobbyPage() {
                     )}
                   </div>
 
-                  {isHost && !hasGame && unassigned.length > 0 && (
+                  {/* Host can assign unassigned players */}
+                  {isHost && !hasGame && unassigned.filter(p => p.id !== me?.id || !myTeamId).length > 0 && (
                     <div>
                       <p style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '6px' }}>Add player:</p>
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
@@ -355,13 +413,14 @@ export default function LobbyPage() {
 
             {teams.length === 0 && (
               <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>
-                {isHost && !hasGame ? 'Create teams to assign players' : 'No teams'}
+                {isHost && !hasGame ? 'Create teams to assign players' : 'No teams yet'}
               </p>
             )}
           </div>
         </div>
       </div>
 
+      {/* Game config modal */}
       <Modal open={showGameConfig} onClose={() => setShowGameConfig(false)} title="Configure Game">
         <form onSubmit={handleStartGame} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <Input
@@ -387,7 +446,7 @@ export default function LobbyPage() {
               Cancel
             </Button>
             <Button type="submit" loading={starting} style={{ flex: 1 }}>
-              Start Game 
+              Start Game →
             </Button>
           </div>
         </form>

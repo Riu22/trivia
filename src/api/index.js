@@ -30,16 +30,19 @@ const post = (path, body) => request('POST', path, body)
 const put = (path, body) => request('PUT', path, body)
 const del = (path) => request('DELETE', path)
 
+// ── Rooms ──────────────────────────────────────────────
 export const createRoom = (code) => post('/rooms', { code })
 export const getRoom = (roomId) => get(`/rooms/${roomId}`)
 export const deleteRoom = (roomId) => del(`/rooms/${roomId}`)
 
+// ── Players ────────────────────────────────────────────
 export const joinRoom = (roomId, code, username) =>
   post(`/rooms/${roomId}/players`, { code, username })
 export const getPlayers = (roomId) => get(`/rooms/${roomId}/players`)
 export const getPlayer = (roomId, playerId) => get(`/rooms/${roomId}/players/${playerId}`)
 export const deletePlayer = (roomId, playerId) => del(`/rooms/${roomId}/players/${playerId}`)
 
+// ── Teams ──────────────────────────────────────────────
 export const createTeam = (roomId) => post(`/rooms/${roomId}/teams`)
 export const getTeams = (roomId) => get(`/rooms/${roomId}/teams`)
 export const deleteTeam = (roomId, teamId) => del(`/rooms/${roomId}/teams/${teamId}`)
@@ -48,22 +51,31 @@ export const assignPlayerToTeam = (roomId, teamId, playerId) =>
 export const removePlayerFromTeam = (roomId, teamId, playerId) =>
   del(`/rooms/${roomId}/teams/${teamId}/players/${playerId}`)
 
+// ── Games ──────────────────────────────────────────────
 export const createGame = (roomId, config) => post('/games', { roomId, ...config })
 export const getGame = (gameId) => get(`/games/${gameId}`)
 export const getGames = (roomId) => get(`/games?roomId=${roomId}`)
 export const deleteGame = (gameId) => del(`/games/${gameId}`)
 
+// ── Rounds ─────────────────────────────────────────────
 export const getRounds = (gameId) => get(`/games/${gameId}/rounds`)
+export const getRound = (gameId, roundId) => get(`/games/${gameId}/rounds/${roundId}`)
 
+// ── Questions ──────────────────────────────────────────
 export const getRoundQuestions = (gameId, roundId) =>
   get(`/games/${gameId}/rounds/${roundId}/questions`)
 
+// ── Answers ────────────────────────────────────────────
 export const submitAnswer = (gameId, roundId, questionId, answer) =>
   post(`/games/${gameId}/rounds/${roundId}/questions/${questionId}`, { answer })
 export const getAnswers = (gameId, roundId, questionId) =>
   get(`/games/${gameId}/rounds/${roundId}/questions/${questionId}`)
+export const getPlayerAnswer = (gameId, roundId, questionId, playerId) =>
+  get(`/games/${gameId}/rounds/${roundId}/questions/${questionId}/players/${playerId}`)
 
-
+// ── SSE ────────────────────────────────────────────────
+// The backend sends named events (event: player-joined, player-left, etc.)
+// We must use addEventListener for each event type, not onmessage
 const SSE_EVENTS = [
   'player-joined',
   'player-left',

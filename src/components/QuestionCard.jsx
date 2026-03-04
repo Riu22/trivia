@@ -8,6 +8,11 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
   const [submitting, setSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(!!myAnswer)
 
+  const type = question.type?.toUpperCase()
+  const hasOptions = question.options?.length > 0
+  const isBuzzer = type === 'BUZZER'
+  const isText = type === 'SHORT_ANSWER' || (!hasOptions && !isBuzzer)
+
   useEffect(() => {
     if (myAnswer) {
       setSelected(myAnswer.answer)
@@ -29,14 +34,15 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
     try {
       await submitAnswer(gameId, roundId, question.id, answer)
       setSubmitted(true)
-      if (question.type === 'MULTIPLE_CHOICE') {
-        setSelected(answer)
-      } else {
-        setText(answer)
-      }
+      if (hasOptions) setSelected(answer)
+      else setText(answer)
       toast('¡Respuesta enviada!', 'success')
     } catch (e) {
-      toast(e.status === 403 ? 'La ronda ha terminado' : 'Error al enviar respuesta', 'error')
+      toast(
+        e.status === 403 ? 'La ronda ha terminado o no estás en un equipo'
+        : 'Error al enviar respuesta',
+        'error'
+      )
     } finally {
       setSubmitting(false)
     }
@@ -83,23 +89,26 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
       padding: '24px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     }}>
+      {/* Type badge */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
         <span style={{
           fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700,
           color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.1em',
           background: 'var(--bg-2)', padding: '4px 8px', borderRadius: '4px',
         }}>
-          {question.type?.replace('_', ' ')}
+          {question.type?.replace(/_/g, ' ')}
         </span>
         {submitted && !roundEnded && (
           <span style={{ fontSize: '11px', color: 'var(--green)', fontWeight: 600 }}>✓ Respondido</span>
         )}
       </div>
 
+      {/* Question text */}
       <h3 style={{ fontSize: '18px', fontWeight: 600, lineHeight: 1.5, marginBottom: '20px', color: 'var(--text)' }}>
         {question.question}
       </h3>
 
+      {/* Media */}
       {question.mediaUrl && (
         <div style={{ marginBottom: '20px', overflow: 'hidden', borderRadius: 'var(--radius)' }}>
           {question.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
@@ -116,9 +125,10 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {question.type === 'MULTIPLE_CHOICE' && (
+      {/* Options — rendered for ANY type that has options */}
+      {hasOptions && (
         <div className="options-grid">
-          {question.options?.map((opt, i) => (
+          {question.options.map((opt, i) => (
             <button
               key={i}
               style={getOptionStyle(opt)}
@@ -134,7 +144,8 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {question.type === 'SHORT_ANSWER' && (
+      {/* Text input */}
+      {isText && (
         <div style={{ display: 'flex', gap: '10px' }}>
           <input
             value={text}
@@ -156,7 +167,8 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {question.type === 'BUZZER' && (
+      {/* BUZZER */}
+      {isBuzzer && (
         <button
           onClick={() => handleSubmit('BUZZ')}
           disabled={submitting || submitted || roundEnded}
@@ -169,10 +181,11 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
             textTransform: 'uppercase', letterSpacing: '2px',
           }}
         >
-          {submitting ? '...' : submitted ? '¡PULSADO!' : '¡PULSAR!'}
+          {submitting ? '...' : submitted ? '🔔 ¡PULSADO!' : '🔔 ¡PULSAR!'}
         </button>
       )}
 
+      {/* Correct answer reveal */}
       {roundEnded && question.correctAnswers?.length > 0 && (
         <div style={{
           marginTop: '20px', padding: '14px',
