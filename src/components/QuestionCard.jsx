@@ -11,7 +11,7 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
   const type = question.type?.toUpperCase()
   const hasOptions = question.options?.length > 0
   const isBuzzer = type === 'BUZZER'
-  const isText = type === 'SHORT_ANSWER' || (!hasOptions && !isBuzzer)
+  const isOpenEnded = type === 'OPEN_ENDED' || type === 'SHORT_ANSWER' || (!hasOptions && !isBuzzer)
 
   useEffect(() => {
     if (myAnswer) {
@@ -89,7 +89,6 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
       padding: '24px',
       boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
     }}>
-      {/* Type badge */}
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
         <span style={{
           fontSize: '10px', fontFamily: 'var(--font-mono)', fontWeight: 700,
@@ -103,12 +102,10 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         )}
       </div>
 
-      {/* Question text */}
       <h3 style={{ fontSize: '18px', fontWeight: 600, lineHeight: 1.5, marginBottom: '20px', color: 'var(--text)' }}>
         {question.question}
       </h3>
 
-      {/* Media */}
       {question.mediaUrl && (
         <div style={{ marginBottom: '20px', overflow: 'hidden', borderRadius: 'var(--radius)' }}>
           {question.mediaUrl.match(/\.(mp4|webm|ogg)$/i) ? (
@@ -125,7 +122,6 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {/* Options — rendered for ANY type that has options */}
       {hasOptions && (
         <div className="options-grid">
           {question.options.map((opt, i) => (
@@ -144,30 +140,43 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {/* Text input */}
-      {isText && (
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <input
+      {isOpenEnded && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <textarea
             value={text}
             onChange={e => setText(e.target.value)}
             placeholder="Escribe tu respuesta..."
             disabled={submitted || roundEnded}
-            onKeyDown={e => e.key === 'Enter' && text.trim() && handleSubmit(text.trim())}
+            rows={3}
             style={{
-              flex: 1, padding: '12px 16px', borderRadius: 'var(--radius)',
-              border: '1px solid var(--border)', background: 'var(--bg-2)',
+              width: '100%', padding: '12px 16px',
+              borderRadius: 'var(--radius)',
+              border: `1px solid ${submitted ? 'var(--green)' : 'var(--border)'}`,
+              background: submitted ? 'rgba(71,255,138,0.05)' : 'var(--bg-2)',
               color: 'var(--text)', outline: 'none',
+              resize: 'vertical', lineHeight: 1.5,
+              fontFamily: 'var(--font-display)', fontSize: '14px',
+              transition: 'border-color var(--transition)',
             }}
           />
           {!submitted && !roundEnded && (
-            <Button onClick={() => text.trim() && handleSubmit(text.trim())} loading={submitting} disabled={!text.trim()}>
-              Enviar
+            <Button
+              onClick={() => text.trim() && handleSubmit(text.trim())}
+              loading={submitting}
+              disabled={!text.trim()}
+              style={{ alignSelf: 'flex-end' }}
+            >
+              Enviar respuesta →
             </Button>
+          )}
+          {submitted && !roundEnded && (
+            <p style={{ fontSize: '12px', color: 'var(--green)', margin: 0 }}>
+              ✓ Respuesta enviada
+            </p>
           )}
         </div>
       )}
 
-      {/* BUZZER */}
       {isBuzzer && (
         <button
           onClick={() => handleSubmit('BUZZ')}
@@ -177,7 +186,8 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
             background: submitted ? 'var(--green-dim)' : 'var(--red-dim)',
             border: `2px solid ${submitted ? 'var(--green)' : 'var(--red)'}`,
             color: submitted ? 'var(--green)' : 'var(--red)',
-            fontSize: '20px', fontWeight: 800, cursor: submitted || roundEnded ? 'default' : 'pointer',
+            fontSize: '20px', fontWeight: 800,
+            cursor: submitted || roundEnded ? 'default' : 'pointer',
             textTransform: 'uppercase', letterSpacing: '2px',
           }}
         >
@@ -185,7 +195,6 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </button>
       )}
 
-      {/* Correct answer reveal */}
       {roundEnded && question.correctAnswers?.length > 0 && (
         <div style={{
           marginTop: '20px', padding: '14px',
