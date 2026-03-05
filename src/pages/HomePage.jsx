@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { createRoom, joinRoom } from '../api'
 import { useAuth } from '../contexts/AuthContext'
 import { Button, Input, Card, Divider, toast } from '../components/Ui'
+import InstallButton from '../components/InstallButton'
 
 export default function HomePage() {
   const navigate = useNavigate()
@@ -73,10 +74,9 @@ export default function HomePage() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '24px',
-      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(71,179,255,0.06) 0%, transparent 70%)',
+      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(232,255,71,0.06) 0%, transparent 70%)',
     }}>
       <div style={{ width: '100%', maxWidth: '420px' }}>
-        {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '48px' }}>
           <div style={{
             display: 'inline-flex',
@@ -95,23 +95,9 @@ export default function HomePage() {
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>Trivia</h1>
           <p style={{ color: 'var(--text-2)', fontSize: '14px', marginTop: '6px' }}>Play with friends, anywhere</p>
-          <button
-            onClick={() => navigate('/history')}
-            style={{
-              marginTop: '12px',
-              fontSize: '12px',
-              color: 'var(--text-3)',
-              fontFamily: 'var(--font-mono)',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-            }}
-          >
-            📋 Match history
-          </button>
+          <div style={{ marginTop: '12px' }}><InstallButton /></div>
         </div>
 
-        {/* Tabs */}
         <div style={{
           display: 'grid', gridTemplateColumns: '1fr 1fr',
           background: 'var(--bg-2)',
