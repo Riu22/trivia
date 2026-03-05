@@ -177,23 +177,6 @@ export default function QuestionCard({ question, gameId, roundId, roundEnded, my
         </div>
       )}
 
-      {isBuzzer && (
-        <button
-          onClick={() => handleSubmit('BUZZ')}
-          disabled={submitting || submitted || roundEnded}
-          style={{
-            width: '100%', padding: '24px', borderRadius: 'var(--radius)',
-            background: submitted ? 'var(--green-dim)' : 'var(--red-dim)',
-            border: `2px solid ${submitted ? 'var(--green)' : 'var(--red)'}`,
-            color: submitted ? 'var(--green)' : 'var(--red)',
-            fontSize: '20px', fontWeight: 800,
-            cursor: submitted || roundEnded ? 'default' : 'pointer',
-            textTransform: 'uppercase', letterSpacing: '2px',
-          }}
-        >
-          {submitting ? '...' : submitted ? '🔔 ¡PULSADO!' : '🔔 ¡PULSAR!'}
-        </button>
-      )}
 
       {roundEnded && question.correctAnswers?.length > 0 && (
         <div style={{

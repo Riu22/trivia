@@ -12,7 +12,25 @@ import { Button, Badge, Spinner, Modal, Input, toast, Card } from '../components
 function CopyButton({ text }) {
   const [copied, setCopied] = useState(false)
   function copy() {
-    navigator.clipboard.writeText(text)
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+      }).catch(() => fallbackCopy())
+    } else {
+      fallbackCopy()
+    }
+  }
+  function fallbackCopy() {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.focus()
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -151,12 +169,6 @@ export default function LobbyPage() {
   }
 
   async function handleLeave() {
-    const amHost = room?.hostId === me?.id
-    const otherPlayers = players.filter(p => p.id !== me?.id)
-    if (amHost && otherPlayers.length > 0) {
-      toast('You are the host. Kick all other players before leaving.', 'error')
-      return
-    }
     if (!window.confirm('Are you sure you want to leave the room?')) return
     try { await deletePlayer(room.id, me.id) } catch (e) { console.warn('deletePlayer failed:', e) }
     navigate('/')
@@ -207,7 +219,6 @@ export default function LobbyPage() {
 
   return (
     <div style={{ minHeight: '100vh', padding: '24px', maxWidth: '900px', margin: '0 auto' }}>
-      {/* Header */}
       <div className="lobby-header">
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
@@ -258,7 +269,6 @@ export default function LobbyPage() {
       </div>
 
       <div className="grid-2">
-        {/* Players */}
         <div>
           <div style={{ marginBottom: '12px' }}>
             <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -283,7 +293,6 @@ export default function LobbyPage() {
           </div>
         </div>
 
-        {/* Teams */}
         <div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
             <h2 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
@@ -322,7 +331,6 @@ export default function LobbyPage() {
                       {isMyTeam && <span style={{ marginLeft: '8px', fontSize: '11px', color: 'var(--blue)' }}>← you</span>}
                     </span>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                      {/* Any player can join/leave a team */}
                       {!hasGame && (
                         isMyTeam ? (
                           <button
@@ -384,7 +392,6 @@ export default function LobbyPage() {
                     )}
                   </div>
 
-                  {/* Host can assign unassigned players */}
                   {isHost && !hasGame && unassigned.filter(p => p.id !== me?.id || !myTeamId).length > 0 && (
                     <div>
                       <p style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '6px' }}>Add player:</p>
@@ -420,7 +427,6 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      {/* Game config modal */}
       <Modal open={showGameConfig} onClose={() => setShowGameConfig(false)} title="Configure Game">
         <form onSubmit={handleStartGame} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <Input

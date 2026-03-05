@@ -1,6 +1,6 @@
 import { Badge } from './Ui'
 
-export default function Scoreboard({ players, teams, answers }) {
+export default function Scoreboard({ players, teams, answers, questions }) {
   const playerScores = {}
   const teamScores = {}
 
@@ -8,20 +8,20 @@ export default function Scoreboard({ players, teams, answers }) {
   teams.forEach(t => { teamScores[t.id] = 0 })
 
   answers.forEach(a => {
-
-    if (a.playerId && playerScores[a.playerId] !== undefined) {
-      playerScores[a.playerId]++
-    }
-    if (a.teamId && teamScores[a.teamId] !== undefined) {
-      teamScores[a.teamId]++
-    }
+    const q = questions?.find(q => q.id === a.questionId)
+    if (!q?.correctAnswers?.length) return
+    const correct = q.correctAnswers
+      .map(c => c.toLowerCase().trim())
+      .includes(a.answer?.toLowerCase().trim())
+    if (!correct) return
+    if (a.playerId && playerScores[a.playerId] !== undefined) playerScores[a.playerId]++
+    if (a.teamId && teamScores[a.teamId] !== undefined) teamScores[a.teamId]++
   })
 
   const sortedPlayers = [...players].sort((a, b) => (playerScores[b.id] || 0) - (playerScores[a.id] || 0))
   const sortedTeams = teams.length > 0
     ? [...teams].sort((a, b) => (teamScores[b.id] || 0) - (teamScores[a.id] || 0))
     : []
-
   const maxScore = Math.max(1, ...sortedPlayers.map(p => playerScores[p.id] || 0))
 
   return (
@@ -33,7 +33,7 @@ export default function Scoreboard({ players, teams, answers }) {
           </h3>
           {sortedTeams.map((team, i) => {
             const score = teamScores[team.id] || 0
-            const pct = (score / maxScore) * 100
+            const pct = maxScore > 0 ? (score / maxScore) * 100 : 0
             return (
               <div key={team.id} style={{ marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
@@ -46,13 +46,7 @@ export default function Scoreboard({ players, teams, answers }) {
                   </span>
                 </div>
                 <div style={{ height: '4px', background: 'var(--bg-3)', borderRadius: '2px' }}>
-                  <div style={{
-                    height: '100%',
-                    width: `${pct}%`,
-                    background: i === 0 ? 'var(--accent)' : 'var(--blue)',
-                    borderRadius: '2px',
-                    transition: 'width 0.6s ease',
-                  }} />
+                  <div style={{ height: '100%', width: `${pct}%`, background: i === 0 ? 'var(--accent)' : 'var(--blue)', borderRadius: '2px', transition: 'width 0.6s ease' }} />
                 </div>
               </div>
             )
@@ -66,14 +60,12 @@ export default function Scoreboard({ players, teams, answers }) {
         </h3>
         {sortedPlayers.map((player, i) => {
           const score = playerScores[player.id] || 0
-          const pct = (score / maxScore) * 100
+          const pct = maxScore > 0 ? (score / maxScore) * 100 : 0
           return (
             <div key={player.id} style={{ marginBottom: '10px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-3)', fontSize: '12px', width: '16px' }}>
-                    {i + 1}
-                  </span>
+                  <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-3)', fontSize: '12px', width: '16px' }}>{i + 1}</span>
                   <div style={{
                     width: '24px', height: '24px', borderRadius: '50%',
                     background: `hsl(${(player.username.charCodeAt(0) * 37) % 360}, 40%, 30%)`,
@@ -83,23 +75,21 @@ export default function Scoreboard({ players, teams, answers }) {
                     {player.username[0].toUpperCase()}
                   </div>
                   <span style={{ fontWeight: 500, fontSize: '14px' }}>{player.username}</span>
+                  {i === 0 && score > 0 && <Badge color="accent">👑 Winner</Badge>}
                 </div>
-                <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-2)', fontSize: '13px' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', color: score > 0 ? 'var(--accent)' : 'var(--text-3)', fontSize: '13px' }}>
                   {score} pts
                 </span>
               </div>
               <div style={{ height: '3px', background: 'var(--bg-3)', borderRadius: '2px' }}>
-                <div style={{
-                  height: '100%',
-                  width: `${pct}%`,
-                  background: 'var(--text-3)',
-                  borderRadius: '2px',
-                  transition: 'width 0.6s ease',
-                }} />
+                <div style={{ height: '100%', width: `${pct}%`, background: i === 0 && score > 0 ? 'var(--accent)' : 'var(--blue)', borderRadius: '2px', transition: 'width 0.6s ease' }} />
               </div>
             </div>
           )
         })}
+        {sortedPlayers.every(p => playerScores[p.id] === 0) && (
+          <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>No correct answers yet</p>
+        )}
       </div>
     </div>
   )
