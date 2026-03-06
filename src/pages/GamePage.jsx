@@ -8,6 +8,7 @@ import QuestionCard from '../components/QuestionCard'
 import CountdownTimer from '../components/CountdownTimer'
 import Scoreboard from '../components/Scoreboard'
 import { Badge, Spinner, Button, Card } from '../components/Ui'
+import { saveGame } from '../utils/history'
 
 function RoundTab({ round, index, active, onClick }) {
   const started = Date.parse(round.createdAt) <= Date.now()
@@ -33,6 +34,43 @@ function RoundTab({ round, index, active, onClick }) {
   )
 }
 
+function saveToHistory({ game, rounds, players, allAnswers, allQuestions }) {
+  try {
+    const playerScores = {}
+    players.forEach(p => { playerScores[p.id] = 0 })
+    allAnswers.forEach(a => {
+      const q = allQuestions.find(q => q.id === a.questionId)
+      if (!q?.correctAnswers?.length) return
+      const correct = q.correctAnswers.map(c => c.toLowerCase().trim())
+        .includes(a.answer?.toLowerCase().trim())
+      if (correct && playerScores[a.playerId] !== undefined) playerScores[a.playerId]++
+    })
+
+    const meId = Number(localStorage.getItem('trivia_player_id'))
+    const entry = {
+      gameId: game.id,
+      roomId: game.roomId,
+      playedAt: new Date().toISOString(),
+      rounds: rounds.length,
+      questionsPerRound: Math.round(allQuestions.length / (rounds.length || 1)),
+      players: players.map(p => ({
+        id: p.id,
+        username: p.username,
+        score: playerScores[p.id] || 0,
+        isMe: p.id === meId,
+      })),
+    }
+
+    const history = JSON.parse(localStorage.getItem('trivia_history') || '[]')
+    if (!history.find(h => h.gameId === game.id)) {
+      history.push(entry)
+      localStorage.setItem('trivia_history', JSON.stringify(history))
+    }
+  } catch (e) {
+    console.warn('Failed to save history:', e)
+  }
+}
+
 export default function GamePage() {
   const { gameId } = useParams()
   const navigate = useNavigate()
@@ -43,7 +81,7 @@ export default function GamePage() {
   const [activeRound, setActiveRound] = useState(null)
   const [questions, setQuestions] = useState([])
   const [allAnswers, setAllAnswers] = useState([])
-  const [allQuestions, setAllQuestions] = useState([]) // all questions across all rounds for scoreboard
+  const [allQuestions, setAllQuestions] = useState([])
   const [players, setPlayers] = useState([])
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
@@ -55,6 +93,13 @@ export default function GamePage() {
   const roundEnded = activeRound && Date.parse(activeRound.endedAt) <= Date.now()
   const roundStarted = activeRound && Date.parse(activeRound.createdAt) <= Date.now() + 2000
   const gameEnded = game?.endedAt && new Date(game.endedAt) <= new Date()
+
+  useEffect(() => {
+    if (gameEnded && game && players.length > 0) {
+      const meId = me?.id
+      saveGame(game, rounds, players, meId)
+    }
+  }, [gameEnded])
 
   const loadRound = useCallback(async (round) => {
     if (!round) return
@@ -75,7 +120,6 @@ export default function GamePage() {
     try {
       const qs = await getRoundQuestions(gameId, round.id)
       setQuestions(qs)
-      // Accumulate all questions for scoreboard scoring
       setAllQuestions(prev => {
         const existing = prev.filter(q => !qs.find(nq => nq.id === q.id))
         return [...existing, ...qs]
@@ -127,7 +171,6 @@ export default function GamePage() {
     load()
   }, [gameId, loadRound])
 
-  // Poll every 3s to detect round transitions
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -197,7 +240,6 @@ export default function GamePage() {
         </Button>
       </div>
 
-      {/* Game ended banner — stays, doesn't redirect */}
       {gameEnded && (
         <div style={{
           marginBottom: '24px', padding: '20px 24px',
@@ -217,7 +259,6 @@ export default function GamePage() {
         </div>
       )}
 
-      {/* Round tabs */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: '4px',
         marginBottom: '24px', borderBottom: '1px solid var(--border)',
@@ -303,7 +344,6 @@ export default function GamePage() {
                 </div>
               ))}
 
-              {/* Between rounds: show who answered what */}
               {roundEnded && allAnswers.length > 0 && (
                 <Card style={{ marginTop: '8px' }}>
                   <h3 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-2)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.08em' }}>

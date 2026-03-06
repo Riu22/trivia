@@ -95,7 +95,22 @@ export default function HomePage() {
           </div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, letterSpacing: '-0.02em' }}>Trivia</h1>
           <p style={{ color: 'var(--text-2)', fontSize: '14px', marginTop: '6px' }}>Play with friends, anywhere</p>
-          <div style={{ marginTop: '12px' }}><InstallButton /></div>
+          <div style={{ marginTop: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+            <InstallButton />
+            <button
+              onClick={() => navigate('/history')}
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: '6px',
+                padding: '6px 14px', borderRadius: 'var(--radius)',
+                background: 'var(--bg-2)', border: '1px solid var(--border)',
+                color: 'var(--text-2)', fontSize: '12px', cursor: 'pointer',
+                fontFamily: 'var(--font-display)', fontWeight: 600,
+                transition: 'all var(--transition)',
+              }}
+            >
+              🕹 History
+            </button>
+          </div>
         </div>
 
         <div style={{
